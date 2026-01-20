@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -90,7 +90,22 @@
         .btn-add { background-color: var(--color-blue); color: var(--text-main); }
         .btn-save { background-color: var(--color-purple); color: white; }
         
-        .scroll-v { overflow-y: auto; height: 100%; padding-bottom: 20px; }
+        .scroll-v { overflow-y: auto; height: 100%; padding-bottom: 80px; }
+
+        /* Toast Message */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -154,7 +169,10 @@
 
         <!-- View: List -->
         <section id="view-list" class="hidden p-2 h-full scroll-v">
-            <input type="text" id="search-input" placeholder="搜尋店名、品項..." class="mb-3" oninput="renderList()">
+            <div class="flex gap-2 mb-3">
+                <input type="text" id="search-input" placeholder="搜尋店名、品項..." oninput="renderList()">
+                <button onclick="exportList()" class="whitespace-nowrap bg-[var(--color-purple)] text-white px-3 rounded text-xs font-bold">匯出複製</button>
+            </div>
             <div id="list-container" class="space-y-2"></div>
         </section>
 
@@ -189,6 +207,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Toast Message -->
+    <div id="toast">已複製到剪貼簿</div>
 
     <script>
         // Configuration
@@ -392,6 +413,51 @@
                     `;
                     container.appendChild(itemDiv);
                 });
+        }
+
+        function exportList() {
+            const flattened = [];
+            Object.entries(records).forEach(([date, drinks]) => {
+                drinks.forEach(d => flattened.push({...d, date}));
+            });
+            flattened.sort((a,b) => b.date.localeCompare(a.date));
+
+            if (flattened.length === 0) {
+                showToast("目前沒有紀錄可匯出");
+                return;
+            }
+
+            let text = "🥤 2026手搖紀錄清單 🥤\n\n";
+            flattened.forEach((i, idx) => {
+                text += `[${idx + 1}] ${i.date}\n`;
+                text += `店名：${i.store}\n`;
+                text += `品項：${i.item}\n`;
+                text += `冰糖：${i.ice} / ${i.sugar}\n`;
+                text += `價格：$${i.price || 0}\n`;
+                text += `評分：${'★'.repeat(i.rating)}\n`;
+                if (i.note) text += `備註：${i.note}\n`;
+                text += `------------------------\n`;
+            });
+
+            // Copy to clipboard
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("已成功複製到剪貼簿");
+            } catch (err) {
+                showToast("複製失敗，請手動選取");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 2000);
         }
 
         let chartInstance = null;

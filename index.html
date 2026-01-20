@@ -42,7 +42,7 @@
             border-bottom: 2px solid var(--color-purple);
         }
         
-        /* Calendar Container - Fixed centering and max width */
+        /* Calendar Container */
         .calendar-container {
             width: 100%;
             max-width: 500px;
@@ -58,7 +58,7 @@
         }
         .calendar-cell {
             background-color: white;
-            aspect-ratio: 1 / 1; /* Keep it square */
+            aspect-ratio: 1 / 1;
             padding: 2px;
             position: relative;
             cursor: pointer;
@@ -74,7 +74,6 @@
             left: 4px;
             font-size: 10px;
         }
-        .cell-today { background-color: #fff9db; }
         .cell-other { color: #ccc; background-color: #fafafa; }
         .bubble-tea-icon { font-size: 8px; margin: 0; line-height: 1; }
         
@@ -187,13 +186,11 @@
 
         <!-- View: List -->
         <section id="view-list" class="hidden p-2 h-full scroll-v">
-            <!-- Search & Export -->
             <div class="flex gap-2 mb-3">
                 <input type="text" id="search-input" placeholder="搜尋店名、品項..." oninput="renderList()">
                 <button onclick="exportList()" class="whitespace-nowrap bg-[var(--color-purple)] text-white px-3 rounded text-xs font-bold">匯出複製</button>
             </div>
 
-            <!-- Import Section (Backup Concept) -->
             <div class="bg-white p-3 rounded-lg shadow-sm mb-4 border border-dashed border-[var(--color-purple)]">
                 <h4 class="text-[12px] font-bold mb-2 text-[var(--color-purple)]">📥 快速匯入/還原紀錄</h4>
                 <textarea id="import-input" class="text-[10px] h-20 mb-2 w-full" placeholder="在此貼上匯出的文字紀錄..."></textarea>
@@ -212,7 +209,7 @@
                 </div>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-sm">
-                <h3 class="text-center font-bold mb-4 border-b pb-2">年度排行 Top 10</h3>
+                <h3 class="text-center font-bold mb-4 border-b pb-2">年度品項排行 (店名+飲料)</h3>
                 <div id="item-rank" class="space-y-2"></div>
             </div>
         </section>
@@ -225,9 +222,7 @@
                 <span id="modal-date-title" class="font-bold">2026-01-01</span>
                 <button onclick="closeModal()" class="text-xl px-2">&times;</button>
             </div>
-            <div id="drink-forms" class="p-3 overflow-y-auto space-y-4">
-                <!-- Drink Entry Blocks -->
-            </div>
+            <div id="drink-forms" class="p-3 overflow-y-auto space-y-4"></div>
             <div class="p-3 border-t bg-gray-50 flex gap-2 flex-none">
                 <button onclick="addDrinkEntry()" id="add-btn" class="flex-1 py-2 btn-add rounded font-bold text-xs">＋下一杯</button>
                 <button onclick="saveRecords()" class="flex-1 py-2 btn-save rounded font-bold text-xs">儲存並關閉</button>
@@ -239,24 +234,20 @@
     <div id="toast">已複製到剪貼簿</div>
 
     <script>
-        // Configuration
         const ICE_LEVELS = ["無法調整", "正常", "少冰", "微冰", "去冰", "常溫", "溫"];
         const SUGAR_LEVELS = ["無法調整", "全糖", "少糖", "半糖", "微糖", "一分糖", "無糖"];
         
-        // State
         let currentYear = 2026;
-        let currentMonth = new Date().getMonth(); // 0-indexed
+        let currentMonth = new Date().getMonth(); 
         let records = JSON.parse(localStorage.getItem('drink_data_2026')) || {};
         let activeDateKey = '';
         let currentDrinks = [];
 
-        // Initialization
         window.onload = () => {
             renderCalendar();
             updateStats();
         };
 
-        // --- Navigation ---
         function switchTab(tab) {
             document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
             document.getElementById(`view-${tab}`).classList.remove('hidden');
@@ -275,7 +266,6 @@
             renderCalendar();
         }
 
-        // --- Calendar Core ---
         function renderCalendar() {
             const body = document.getElementById('calendar-body');
             document.getElementById('month-title').innerText = `${currentYear}年 ${currentMonth + 1}月`;
@@ -286,7 +276,6 @@
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
 
-            // Prev padding
             for (let i = padding - 1; i >= 0; i--) {
                 const cell = document.createElement('div');
                 cell.className = 'calendar-cell cell-other';
@@ -294,7 +283,6 @@
                 body.appendChild(cell);
             }
 
-            // Days
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const cell = document.createElement('div');
@@ -315,7 +303,6 @@
             updateStats();
         }
 
-        // --- Modal & Entry ---
         function openModal(dateKey) {
             activeDateKey = dateKey;
             document.getElementById('modal-date-title').innerText = dateKey;
@@ -332,10 +319,6 @@
             if (currentDrinks.length < 5) {
                 currentDrinks.push(defaultDrink());
                 renderDrinkForms();
-            }
-            if (currentDrinks.length >= 5) {
-                document.getElementById('add-btn').style.opacity = '0.5';
-                document.getElementById('add-btn').disabled = true;
             }
         }
 
@@ -392,7 +375,6 @@
             closeModal();
         }
 
-        // --- Stats & Analysis ---
         function updateStats() {
             let yCount = 0, yCost = 0, mCount = 0, mCost = 0;
             const mPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
@@ -466,7 +448,6 @@
                 text += `------------------------\n`;
             });
 
-            // Copy to clipboard
             const textArea = document.createElement("textarea");
             textArea.value = text;
             document.body.appendChild(textArea);
@@ -475,12 +456,11 @@
                 document.execCommand('copy');
                 showToast("已成功複製到剪貼簿");
             } catch (err) {
-                showToast("複製失敗，請手動選取");
+                showToast("複製失敗");
             }
             document.body.removeChild(textArea);
         }
 
-        // --- Import Logic (New Feature) ---
         function importFromText() {
             const input = document.getElementById('import-input').value;
             if (!input.trim()) {
@@ -488,7 +468,6 @@
                 return;
             }
 
-            // Split by separator
             const blocks = input.split('------------------------');
             let successCount = 0;
 
@@ -499,7 +478,6 @@
                 let date = '', store = '', item = '', ice = '去冰', sugar = '一分糖', price = 0, rating = 3, note = '';
 
                 lines.forEach(line => {
-                    // Date matching [idx] YYYY-MM-DD
                     if (line.includes(']')) {
                         const dateMatch = line.match(/\d{4}-\d{2}-\d{2}/);
                         if (dateMatch) date = dateMatch[0];
@@ -513,21 +491,13 @@
                             sugar = parts[1].trim();
                         }
                     }
-                    if (line.startsWith('價格：')) {
-                        price = line.replace('價格：', '').replace('$', '').trim();
-                    }
-                    if (line.startsWith('評分：')) {
-                        rating = (line.match(/★/g) || []).length;
-                    }
-                    if (line.startsWith('備註：')) {
-                        note = line.replace('備註：', '').trim();
-                    }
+                    if (line.startsWith('價格：')) price = line.replace('價格：', '').replace('$', '').trim();
+                    if (line.startsWith('評分：')) rating = (line.match(/★/g) || []).length;
+                    if (line.startsWith('備註：')) note = line.replace('備註：', '').trim();
                 });
 
                 if (date && (store || item)) {
                     if (!records[date]) records[date] = [];
-                    // Simple deduplication check: if same store and item on same day, skip or allow? 
-                    // For backup, we add it.
                     records[date].push({ store, item, ice, sugar, price, rating, note });
                     successCount++;
                 }
@@ -540,7 +510,7 @@
                 updateStats();
                 showToast(`成功匯入 ${successCount} 筆紀錄`);
             } else {
-                showToast("解析失敗，請檢查格式");
+                showToast("解析失敗");
             }
         }
 
@@ -554,13 +524,17 @@
         let chartInstance = null;
         function renderAnalysis() {
             const stores = {};
-            const items = {};
+            const itemCombinations = {}; 
+
             Object.values(records).flat().forEach(d => {
                 if (d.store) stores[d.store] = (stores[d.store] || 0) + 1;
-                if (d.item) items[d.item] = (items[d.item] || 0) + 1;
+                
+                if (d.store && d.item) {
+                    const combo = `${d.store} - ${d.item}`;
+                    itemCombinations[combo] = (itemCombinations[combo] || 0) + 1;
+                }
             });
 
-            // Pie Chart
             const ctx = document.getElementById('storeChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, {
@@ -575,12 +549,11 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
             });
 
-            // Ranking
-            const topTen = Object.entries(items).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            const topTen = Object.entries(itemCombinations).sort((a,b) => b[1] - a[1]).slice(0, 10);
             const rankDiv = document.getElementById('item-rank');
-            rankDiv.innerHTML = topTen.map(([name, count], idx) => `
-                <div class="flex justify-between items-center text-xs p-2 bg-[var(--color-gray)] rounded">
-                    <span>${idx + 1}. <b>${name}</b></span>
+            rankDiv.innerHTML = topTen.map(([combo, count], idx) => `
+                <div class="flex justify-between items-center text-[11px] p-2 bg-[var(--color-gray)] rounded">
+                    <span>${idx + 1}. <b class="text-indigo-700">${combo}</b></span>
                     <span class="font-bold">${count} 杯</span>
                 </div>
             `).join('') || '<div class="text-center text-gray-400 py-4">尚無數據</div>';

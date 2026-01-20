@@ -1,0 +1,433 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026手搖紀錄</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-pink: #ECD4D4;
+            --color-blue: #CCDBE2;
+            --color-purple: #C9CBE0;
+            --color-gray: #EFEFF1;
+            --text-main: #555555;
+        }
+        body {
+            background-color: var(--color-gray);
+            color: var(--text-main);
+            font-family: -apple-system, "Microsoft JhengHei", sans-serif;
+            font-size: 13px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        /* Tab Styles */
+        .nav-tab {
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            transition: all 0.2s;
+            background-color: var(--color-gray);
+            border-bottom: 2px solid transparent;
+        }
+        .nav-tab.active {
+            background-color: white;
+            color: #7c3aed;
+            font-weight: bold;
+            border-bottom: 2px solid var(--color-purple);
+        }
+        /* Calendar Styles */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #ddd;
+        }
+        .calendar-cell {
+            background-color: white;
+            aspect-ratio: 1/1.1;
+            padding: 2px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .cell-today { background-color: #fff9db; }
+        .cell-other { color: #ccc; background-color: #fafafa; }
+        .bubble-tea-icon { font-size: 10px; margin: 0 1px; }
+        
+        /* Stats Dashboard */
+        .stat-box {
+            background: white;
+            padding: 8px 4px;
+            border-radius: 4px;
+            text-align: center;
+            flex: 1;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .stat-value { font-size: 14px; font-weight: bold; }
+        .stat-label { font-size: 11px; color: #888; margin-bottom: 2px; }
+
+        /* Modal & UI Elements */
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+        .rating-star { color: #ddd; font-size: 18px; cursor: pointer; }
+        .rating-star.active { color: #ffca28; }
+        
+        input, select, textarea {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px 8px;
+            width: 100%;
+            outline: none;
+            background: white;
+        }
+        .btn-add { background-color: var(--color-blue); color: var(--text-main); }
+        .btn-save { background-color: var(--color-purple); color: white; }
+        
+        .scroll-v { overflow-y: auto; height: 100%; padding-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="flex bg-white shadow-sm flex-none">
+        <button onclick="switchTab('calendar')" id="tab-calendar" class="nav-tab active">日曆</button>
+        <button onclick="switchTab('list')" id="tab-list" class="nav-tab">清單</button>
+        <button onclick="switchTab('analysis')" id="tab-analysis" class="nav-tab">分析</button>
+    </nav>
+
+    <!-- Dashboard: Year Stats -->
+    <div class="p-2 flex gap-2 flex-none bg-white border-b">
+        <div class="stat-box">
+            <div class="stat-label">年度總杯數</div>
+            <div id="y-count" class="stat-value">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">年度總支出</div>
+            <div id="y-cost" class="stat-value">$0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">平均單價</div>
+            <div id="y-avg" class="stat-value">$0</div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="main-scroll" class="flex-1 overflow-hidden relative">
+        
+        <!-- View: Calendar -->
+        <section id="view-calendar" class="p-2 h-full flex flex-col">
+            <div class="flex items-center justify-between mb-2 px-2">
+                <button onclick="moveMonth(-1)" class="p-1 font-bold">◀</button>
+                <div id="month-title" class="text-base font-bold text-gray-700">2026年 1月</div>
+                <button onclick="moveMonth(1)" class="p-1 font-bold">▶</button>
+            </div>
+
+            <div class="flex gap-2 mb-2">
+                <div class="stat-box flex flex-row items-center justify-center gap-2 py-2">
+                    <span class="stat-label m-0">本月杯數:</span>
+                    <span id="m-count" class="stat-value">0</span>
+                </div>
+                <div class="stat-box flex flex-row items-center justify-center gap-2 py-2">
+                    <span class="stat-label m-0">本月支出:</span>
+                    <span id="m-cost" class="stat-value">$0</span>
+                </div>
+            </div>
+
+            <div class="calendar-grid text-center py-1 text-[11px] font-bold">
+                <div class="bg-[var(--color-blue)]">一</div>
+                <div class="bg-[var(--color-blue)]">二</div>
+                <div class="bg-[var(--color-blue)]">三</div>
+                <div class="bg-[var(--color-blue)]">四</div>
+                <div class="bg-[var(--color-blue)]">五</div>
+                <div class="bg-[var(--color-pink)]">六</div>
+                <div class="bg-[var(--color-pink)]">日</div>
+            </div>
+            <div id="calendar-body" class="calendar-grid flex-1"></div>
+        </section>
+
+        <!-- View: List -->
+        <section id="view-list" class="hidden p-2 h-full scroll-v">
+            <input type="text" id="search-input" placeholder="搜尋店名、品項..." class="mb-3" oninput="renderList()">
+            <div id="list-container" class="space-y-2"></div>
+        </section>
+
+        <!-- View: Analysis -->
+        <section id="view-analysis" class="hidden p-2 h-full scroll-v">
+            <div class="bg-white p-4 rounded-lg shadow-sm mb-4">
+                <h3 class="text-center font-bold mb-2">各店家杯數佔比</h3>
+                <div class="h-48 flex justify-center">
+                    <canvas id="storeChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-center font-bold mb-4 border-b pb-2">年度排行 Top 10</h3>
+                <div id="item-rank" class="space-y-2"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Entry Modal -->
+    <div id="modal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-3 bg-[var(--color-purple)] text-white flex justify-between items-center flex-none">
+                <span id="modal-date-title" class="font-bold">2026-01-01</span>
+                <button onclick="closeModal()" class="text-xl px-2">&times;</button>
+            </div>
+            <div id="drink-forms" class="p-3 overflow-y-auto space-y-4">
+                <!-- Drink Entry Blocks -->
+            </div>
+            <div class="p-3 border-t bg-gray-50 flex gap-2 flex-none">
+                <button onclick="addDrinkEntry()" id="add-btn" class="flex-1 py-2 btn-add rounded font-bold text-xs">＋下一杯</button>
+                <button onclick="saveRecords()" class="flex-1 py-2 btn-save rounded font-bold text-xs">儲存並關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const ICE_LEVELS = ["無法調整", "正常", "少冰", "微冰", "去冰", "常溫", "溫"];
+        const SUGAR_LEVELS = ["無法調整", "全糖", "少糖", "半糖", "微糖", "一分糖", "無糖"];
+        
+        // State
+        let currentYear = 2026;
+        let currentMonth = new Date().getMonth(); // 0-indexed
+        let records = JSON.parse(localStorage.getItem('drink_data_2026')) || {};
+        let activeDateKey = '';
+        let currentDrinks = [];
+
+        // Initialization
+        window.onload = () => {
+            renderCalendar();
+            updateStats();
+        };
+
+        // --- Navigation ---
+        function switchTab(tab) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            if (tab === 'list') renderList();
+            if (tab === 'analysis') renderAnalysis();
+            if (tab === 'calendar') renderCalendar();
+        }
+
+        function moveMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderCalendar();
+        }
+
+        // --- Calendar Core ---
+        function renderCalendar() {
+            const body = document.getElementById('calendar-body');
+            document.getElementById('month-title').innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            body.innerHTML = '';
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const padding = firstDay === 0 ? 6 : firstDay - 1;
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+
+            // Prev padding
+            for (let i = padding - 1; i >= 0; i--) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell cell-other';
+                cell.innerText = prevMonthDays - i;
+                body.appendChild(cell);
+            }
+
+            // Days
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell';
+                cell.onclick = () => openModal(dateKey);
+                cell.innerHTML = `<div>${d}</div>`;
+
+                if (records[dateKey]) {
+                    const icons = document.createElement('div');
+                    icons.className = 'flex flex-wrap mt-auto';
+                    records[dateKey].forEach(() => {
+                        icons.innerHTML += `<span class="bubble-tea-icon">🧋</span>`;
+                    });
+                    cell.appendChild(icons);
+                }
+                body.appendChild(cell);
+            }
+            updateStats();
+        }
+
+        // --- Modal & Entry ---
+        function openModal(dateKey) {
+            activeDateKey = dateKey;
+            document.getElementById('modal-date-title').innerText = dateKey;
+            currentDrinks = records[dateKey] ? JSON.parse(JSON.stringify(records[dateKey])) : [defaultDrink()];
+            renderDrinkForms();
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function defaultDrink() {
+            return { store: '', item: '', ice: '去冰', sugar: '一分糖', price: '', rating: 3, note: '' };
+        }
+
+        function addDrinkEntry() {
+            if (currentDrinks.length < 5) {
+                currentDrinks.push(defaultDrink());
+                renderDrinkForms();
+            }
+            if (currentDrinks.length >= 5) {
+                document.getElementById('add-btn').style.opacity = '0.5';
+                document.getElementById('add-btn').disabled = true;
+            }
+        }
+
+        function renderDrinkForms() {
+            const container = document.getElementById('drink-forms');
+            container.innerHTML = '';
+            document.getElementById('add-btn').disabled = (currentDrinks.length >= 5);
+            document.getElementById('add-btn').style.opacity = (currentDrinks.length >= 5 ? '0.5' : '1');
+
+            currentDrinks.forEach((d, idx) => {
+                const div = document.createElement('div');
+                div.className = "p-3 bg-[#f9f9f9] border rounded-lg relative";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-xs text-[var(--color-purple)]">第 ${idx + 1} 杯</span>
+                        ${idx > 0 ? `<button onclick="removeDrink(${idx})" class="text-red-400 text-xs">移除</button>` : ''}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <input type="text" placeholder="店名" value="${d.store}" oninput="updateCurrent(${idx}, 'store', this.value)">
+                        <input type="text" placeholder="品項" value="${d.item}" oninput="updateCurrent(${idx}, 'item', this.value)">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <select onchange="updateCurrent(${idx}, 'ice', this.value)">
+                            ${ICE_LEVELS.map(l => `<option ${d.ice === l ? 'selected' : ''}>${l}</option>`).join('')}
+                        </select>
+                        <select onchange="updateCurrent(${idx}, 'sugar', this.value)">
+                            ${SUGAR_LEVELS.map(l => `<option ${d.sugar === l ? 'selected' : ''}>${l}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <input type="number" placeholder="價格" value="${d.price}" oninput="updateCurrent(${idx}, 'price', this.value)">
+                        <div class="flex items-center justify-center gap-1">
+                            ${[1, 2, 3, 4, 5].map(s => `<span class="rating-star ${s <= d.rating ? 'active' : ''}" onclick="setRating(${idx}, ${s})">★</span>`).join('')}
+                        </div>
+                    </div>
+                    <textarea class="text-xs h-12" placeholder="備註..." oninput="updateCurrent(${idx}, 'note', this.value)">${d.note}</textarea>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateCurrent(idx, field, val) { currentDrinks[idx][field] = val; }
+        function setRating(idx, s) { currentDrinks[idx].rating = s; renderDrinkForms(); }
+        function removeDrink(idx) { currentDrinks.splice(idx, 1); renderDrinkForms(); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        function saveRecords() {
+            const clean = currentDrinks.filter(d => d.store.trim() || d.item.trim());
+            if (clean.length > 0) records[activeDateKey] = clean;
+            else delete records[activeDateKey];
+            
+            localStorage.setItem('drink_data_2026', JSON.stringify(records));
+            renderCalendar();
+            closeModal();
+        }
+
+        // --- Stats & Analysis ---
+        function updateStats() {
+            let yCount = 0, yCost = 0, mCount = 0, mCost = 0;
+            const mPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+            
+            Object.entries(records).forEach(([date, drinks]) => {
+                drinks.forEach(d => {
+                    const p = parseFloat(d.price) || 0;
+                    if (date.startsWith(currentYear.toString())) { yCount++; yCost += p; }
+                    if (date.startsWith(mPrefix)) { mCount++; mCost += p; }
+                });
+            });
+
+            document.getElementById('y-count').innerText = yCount;
+            document.getElementById('y-cost').innerText = `$${yCost}`;
+            document.getElementById('y-avg').innerText = `$${yCount ? Math.round(yCost / yCount) : 0}`;
+            document.getElementById('m-count').innerText = mCount;
+            document.getElementById('m-cost').innerText = `$${mCost}`;
+        }
+
+        function renderList() {
+            const container = document.getElementById('list-container');
+            const q = document.getElementById('search-input').value.toLowerCase();
+            container.innerHTML = '';
+            
+            const flattened = [];
+            Object.entries(records).forEach(([date, drinks]) => {
+                drinks.forEach(d => flattened.push({...d, date}));
+            });
+            flattened.sort((a,b) => b.date.localeCompare(a.date));
+
+            flattened.filter(i => i.date.includes(q) || i.store.toLowerCase().includes(q) || i.item.toLowerCase().includes(q))
+                .forEach(i => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = "bg-white p-2 rounded border-l-4 border-[var(--color-purple)] shadow-sm text-[11px]";
+                    itemDiv.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-gray-400 font-mono">${i.date}</span>
+                            <span class="font-bold text-indigo-600">$${i.price || 0}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-bold text-[12px]">${i.store} · ${i.item}</span>
+                            <span>${i.ice}/${i.sugar} | ${'★'.repeat(i.rating)}</span>
+                        </div>
+                        <div class="text-gray-400 mt-1 italic border-t pt-1">備註: ${i.note || '無'}</div>
+                    `;
+                    container.appendChild(itemDiv);
+                });
+        }
+
+        let chartInstance = null;
+        function renderAnalysis() {
+            const stores = {};
+            const items = {};
+            Object.values(records).flat().forEach(d => {
+                if (d.store) stores[d.store] = (stores[d.store] || 0) + 1;
+                if (d.item) items[d.item] = (items[d.item] || 0) + 1;
+            });
+
+            // Pie Chart
+            const ctx = document.getElementById('storeChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(stores),
+                    datasets: [{
+                        data: Object.values(stores),
+                        backgroundColor: ['#ECD4D4', '#CCDBE2', '#C9CBE0', '#A5B4FC', '#86efac', '#fde68a']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+            });
+
+            // Ranking
+            const topTen = Object.entries(items).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            const rankDiv = document.getElementById('item-rank');
+            rankDiv.innerHTML = topTen.map(([name, count], idx) => `
+                <div class="flex justify-between items-center text-xs p-2 bg-[var(--color-gray)] rounded">
+                    <span>${idx + 1}. <b>${name}</b></span>
+                    <span class="font-bold">${count} 杯</span>
+                </div>
+            `).join('') || '<div class="text-center text-gray-400 py-4">尚無數據</div>';
+        }
+    </script>
+</body>
+</html>

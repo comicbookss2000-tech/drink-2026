@@ -187,10 +187,19 @@
 
         <!-- View: List -->
         <section id="view-list" class="hidden p-2 h-full scroll-v">
+            <!-- Search & Export -->
             <div class="flex gap-2 mb-3">
                 <input type="text" id="search-input" placeholder="搜尋店名、品項..." oninput="renderList()">
                 <button onclick="exportList()" class="whitespace-nowrap bg-[var(--color-purple)] text-white px-3 rounded text-xs font-bold">匯出複製</button>
             </div>
+
+            <!-- Import Section (Backup Concept) -->
+            <div class="bg-white p-3 rounded-lg shadow-sm mb-4 border border-dashed border-[var(--color-purple)]">
+                <h4 class="text-[12px] font-bold mb-2 text-[var(--color-purple)]">📥 快速匯入/還原紀錄</h4>
+                <textarea id="import-input" class="text-[10px] h-20 mb-2 w-full" placeholder="在此貼上匯出的文字紀錄..."></textarea>
+                <button onclick="importFromText()" class="w-full py-1.5 bg-[var(--color-blue)] text-gray-700 rounded text-xs font-bold">解析並存入紀錄</button>
+            </div>
+
             <div id="list-container" class="space-y-2"></div>
         </section>
 
@@ -469,6 +478,70 @@
                 showToast("複製失敗，請手動選取");
             }
             document.body.removeChild(textArea);
+        }
+
+        // --- Import Logic (New Feature) ---
+        function importFromText() {
+            const input = document.getElementById('import-input').value;
+            if (!input.trim()) {
+                showToast("請貼入內容");
+                return;
+            }
+
+            // Split by separator
+            const blocks = input.split('------------------------');
+            let successCount = 0;
+
+            blocks.forEach(block => {
+                const lines = block.trim().split('\n');
+                if (lines.length < 2) return;
+
+                let date = '', store = '', item = '', ice = '去冰', sugar = '一分糖', price = 0, rating = 3, note = '';
+
+                lines.forEach(line => {
+                    // Date matching [idx] YYYY-MM-DD
+                    if (line.includes(']')) {
+                        const dateMatch = line.match(/\d{4}-\d{2}-\d{2}/);
+                        if (dateMatch) date = dateMatch[0];
+                    }
+                    if (line.startsWith('店名：')) store = line.replace('店名：', '').trim();
+                    if (line.startsWith('品項：')) item = line.replace('品項：', '').trim();
+                    if (line.startsWith('冰糖：')) {
+                        const parts = line.replace('冰糖：', '').split('/');
+                        if (parts.length === 2) {
+                            ice = parts[0].trim();
+                            sugar = parts[1].trim();
+                        }
+                    }
+                    if (line.startsWith('價格：')) {
+                        price = line.replace('價格：', '').replace('$', '').trim();
+                    }
+                    if (line.startsWith('評分：')) {
+                        rating = (line.match(/★/g) || []).length;
+                    }
+                    if (line.startsWith('備註：')) {
+                        note = line.replace('備註：', '').trim();
+                    }
+                });
+
+                if (date && (store || item)) {
+                    if (!records[date]) records[date] = [];
+                    // Simple deduplication check: if same store and item on same day, skip or allow? 
+                    // For backup, we add it.
+                    records[date].push({ store, item, ice, sugar, price, rating, note });
+                    successCount++;
+                }
+            });
+
+            if (successCount > 0) {
+                localStorage.setItem('drink_data_2026', JSON.stringify(records));
+                document.getElementById('import-input').value = '';
+                renderList();
+                updateStats();
+                showToast(`成功匯入 ${successCount} 筆紀錄`);
+            } else {
+                showToast("解析失敗，請檢查格式");
+            }
         }
 
         function showToast(msg) {

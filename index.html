@@ -41,6 +41,14 @@
             font-weight: bold;
             border-bottom: 2px solid var(--color-purple);
         }
+        
+        /* Calendar Container - Fixed centering and max width */
+        .calendar-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
         /* Calendar Styles */
         .calendar-grid {
             display: grid;
@@ -50,17 +58,25 @@
         }
         .calendar-cell {
             background-color: white;
-            aspect-ratio: 1/1.1;
+            aspect-ratio: 1 / 1; /* Keep it square */
             padding: 2px;
             position: relative;
             cursor: pointer;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .calendar-cell .date-num {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 10px;
         }
         .cell-today { background-color: #fff9db; }
         .cell-other { color: #ccc; background-color: #fafafa; }
-        .bubble-tea-icon { font-size: 10px; margin: 0 1px; }
+        .bubble-tea-icon { font-size: 8px; margin: 0; line-height: 1; }
         
         /* Stats Dashboard */
         .stat-box {
@@ -137,34 +153,36 @@
     <main id="main-scroll" class="flex-1 overflow-hidden relative">
         
         <!-- View: Calendar -->
-        <section id="view-calendar" class="p-2 h-full flex flex-col">
-            <div class="flex items-center justify-between mb-2 px-2">
-                <button onclick="moveMonth(-1)" class="p-1 font-bold">◀</button>
-                <div id="month-title" class="text-base font-bold text-gray-700">2026年 1月</div>
-                <button onclick="moveMonth(1)" class="p-1 font-bold">▶</button>
-            </div>
-
-            <div class="flex gap-2 mb-2">
-                <div class="stat-box flex flex-row items-center justify-center gap-2 py-2">
-                    <span class="stat-label m-0">本月杯數:</span>
-                    <span id="m-count" class="stat-value">0</span>
+        <section id="view-calendar" class="p-2 h-full flex flex-col scroll-v">
+            <div class="calendar-container">
+                <div class="flex items-center justify-between mb-2 px-2">
+                    <button onclick="moveMonth(-1)" class="p-1 font-bold">◀</button>
+                    <div id="month-title" class="text-base font-bold text-gray-700">2026年 1月</div>
+                    <button onclick="moveMonth(1)" class="p-1 font-bold">▶</button>
                 </div>
-                <div class="stat-box flex flex-row items-center justify-center gap-2 py-2">
-                    <span class="stat-label m-0">本月支出:</span>
-                    <span id="m-cost" class="stat-value">$0</span>
-                </div>
-            </div>
 
-            <div class="calendar-grid text-center py-1 text-[11px] font-bold">
-                <div class="bg-[var(--color-blue)]">一</div>
-                <div class="bg-[var(--color-blue)]">二</div>
-                <div class="bg-[var(--color-blue)]">三</div>
-                <div class="bg-[var(--color-blue)]">四</div>
-                <div class="bg-[var(--color-blue)]">五</div>
-                <div class="bg-[var(--color-pink)]">六</div>
-                <div class="bg-[var(--color-pink)]">日</div>
+                <div class="flex gap-2 mb-2">
+                    <div class="stat-box flex flex-row items-center justify-center gap-2 py-2">
+                        <span class="stat-label m-0">本月杯數:</span>
+                        <span id="m-count" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-box flex flex-row items-center justify-center gap-2 py-2">
+                        <span class="stat-label m-0">本月支出:</span>
+                        <span id="m-cost" class="stat-value">$0</span>
+                    </div>
+                </div>
+
+                <div class="calendar-grid text-center py-1 text-[11px] font-bold">
+                    <div class="bg-[var(--color-blue)]">一</div>
+                    <div class="bg-[var(--color-blue)]">二</div>
+                    <div class="bg-[var(--color-blue)]">三</div>
+                    <div class="bg-[var(--color-blue)]">四</div>
+                    <div class="bg-[var(--color-blue)]">五</div>
+                    <div class="bg-[var(--color-pink)]">六</div>
+                    <div class="bg-[var(--color-pink)]">日</div>
+                </div>
+                <div id="calendar-body" class="calendar-grid"></div>
             </div>
-            <div id="calendar-body" class="calendar-grid flex-1"></div>
         </section>
 
         <!-- View: List -->
@@ -263,7 +281,7 @@
             for (let i = padding - 1; i >= 0; i--) {
                 const cell = document.createElement('div');
                 cell.className = 'calendar-cell cell-other';
-                cell.innerText = prevMonthDays - i;
+                cell.innerHTML = `<span class="date-num">${prevMonthDays - i}</span>`;
                 body.appendChild(cell);
             }
 
@@ -273,11 +291,11 @@
                 const cell = document.createElement('div');
                 cell.className = 'calendar-cell';
                 cell.onclick = () => openModal(dateKey);
-                cell.innerHTML = `<div>${d}</div>`;
+                cell.innerHTML = `<span class="date-num">${d}</span>`;
 
                 if (records[dateKey]) {
                     const icons = document.createElement('div');
-                    icons.className = 'flex flex-wrap mt-auto';
+                    icons.className = 'flex flex-wrap justify-center mt-2 px-1';
                     records[dateKey].forEach(() => {
                         icons.innerHTML += `<span class="bubble-tea-icon">🧋</span>`;
                     });

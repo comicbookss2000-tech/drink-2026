@@ -12,6 +12,7 @@
             --color-blue: #CCDBE2;
             --color-purple: #C9CBE0;
             --color-gray: #EFEFF1;
+            --color-active: #4E6E62; /* 使用者指定顏色 */
             --text-main: #555555;
         }
         body {
@@ -26,20 +27,22 @@
         }
         /* Tab Styles */
         .nav-tab {
-            height: 34px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex: 1;
             transition: all 0.2s;
             background-color: var(--color-gray);
-            border-bottom: 2px solid transparent;
+            border-bottom: 3px solid transparent;
+            font-size: 14px;
+            color: #888;
         }
         .nav-tab.active {
             background-color: white;
-            color: #7c3aed;
+            color: var(--color-active);
             font-weight: bold;
-            border-bottom: 2px solid var(--color-purple);
+            border-bottom: 3px solid var(--color-active);
         }
         
         /* Calendar Container */
@@ -49,7 +52,6 @@
             margin: 0 auto;
         }
 
-        /* Calendar Styles */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -97,17 +99,21 @@
         input, select, textarea {
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 4px 8px;
+            padding: 6px 8px;
             width: 100%;
             outline: none;
             background: white;
         }
         .btn-add { background-color: var(--color-blue); color: var(--text-main); }
-        .btn-save { background-color: var(--color-purple); color: white; }
+        .btn-save { background-color: var(--color-active); color: white; }
         
-        .scroll-v { overflow-y: auto; height: 100%; padding-bottom: 80px; }
+        .scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 40px;
+        }
 
-        /* Toast Message */
         #toast {
             position: fixed;
             bottom: 20px;
@@ -149,15 +155,15 @@
     </div>
 
     <!-- Main Content Area -->
-    <main id="main-scroll" class="flex-1 overflow-hidden relative">
+    <main class="flex-1 flex flex-col overflow-hidden">
         
         <!-- View: Calendar -->
-        <section id="view-calendar" class="p-2 h-full flex flex-col scroll-v">
+        <section id="view-calendar" class="scroll-container p-2">
             <div class="calendar-container">
                 <div class="flex items-center justify-between mb-2 px-2">
-                    <button onclick="moveMonth(-1)" class="p-1 font-bold">◀</button>
+                    <button onclick="moveMonth(-1)" class="p-2 font-bold text-lg">◀</button>
                     <div id="month-title" class="text-base font-bold text-gray-700">2026年 1月</div>
-                    <button onclick="moveMonth(1)" class="p-1 font-bold">▶</button>
+                    <button onclick="moveMonth(1)" class="p-2 font-bold text-lg">▶</button>
                 </div>
 
                 <div class="flex gap-2 mb-2">
@@ -185,31 +191,35 @@
         </section>
 
         <!-- View: List -->
-        <section id="view-list" class="hidden p-2 h-full scroll-v">
-            <div class="flex gap-2 mb-3">
-                <input type="text" id="search-input" placeholder="搜尋店名、品項..." oninput="renderList()">
-                <button onclick="exportList()" class="whitespace-nowrap bg-[var(--color-purple)] text-white px-3 rounded text-xs font-bold">匯出複製</button>
+        <section id="view-list" class="hidden scroll-container p-2">
+            <div class="sticky top-0 bg-[var(--color-gray)] pb-2 z-10">
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="search-input" placeholder="搜尋店名、品項..." oninput="renderList()">
+                    <button onclick="exportList()" class="whitespace-nowrap bg-[var(--color-active)] text-white px-3 rounded text-xs font-bold">匯出複製</button>
+                </div>
+
+                <div class="bg-white p-3 rounded-lg shadow-sm border border-dashed border-[var(--color-active)]">
+                    <h4 class="text-[12px] font-bold mb-2 text-[var(--color-active)] flex items-center gap-1">
+                        <span>📥 快速匯入/還原紀錄</span>
+                    </h4>
+                    <textarea id="import-input" class="text-[10px] h-16 mb-2 w-full" placeholder="在此貼上之前備份的文字紀錄..."></textarea>
+                    <button onclick="importFromText()" class="w-full py-1.5 bg-[var(--color-blue)] text-gray-700 rounded text-xs font-bold shadow-sm">解析並存入資料區</button>
+                </div>
             </div>
 
-            <div class="bg-white p-3 rounded-lg shadow-sm mb-4 border border-dashed border-[var(--color-purple)]">
-                <h4 class="text-[12px] font-bold mb-2 text-[var(--color-purple)]">📥 快速匯入/還原紀錄</h4>
-                <textarea id="import-input" class="text-[10px] h-20 mb-2 w-full" placeholder="在此貼上匯出的文字紀錄..."></textarea>
-                <button onclick="importFromText()" class="w-full py-1.5 bg-[var(--color-blue)] text-gray-700 rounded text-xs font-bold">解析並存入紀錄</button>
-            </div>
-
-            <div id="list-container" class="space-y-2"></div>
+            <div id="list-container" class="space-y-2 mt-2"></div>
         </section>
 
         <!-- View: Analysis -->
-        <section id="view-analysis" class="hidden p-2 h-full scroll-v">
+        <section id="view-analysis" class="hidden scroll-container p-2">
             <div class="bg-white p-4 rounded-lg shadow-sm mb-4">
-                <h3 class="text-center font-bold mb-2">各店家杯數佔比</h3>
+                <h3 class="text-center font-bold mb-2">店家杯數分佈</h3>
                 <div class="h-48 flex justify-center">
                     <canvas id="storeChart"></canvas>
                 </div>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-sm">
-                <h3 class="text-center font-bold mb-4 border-b pb-2">年度品項排行 (店名+飲料)</h3>
+                <h3 class="text-center font-bold mb-4 border-b pb-2">年度品項排行 (Top 10)</h3>
                 <div id="item-rank" class="space-y-2"></div>
             </div>
         </section>
@@ -218,14 +228,14 @@
     <!-- Entry Modal -->
     <div id="modal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div class="p-3 bg-[var(--color-purple)] text-white flex justify-between items-center flex-none">
-                <span id="modal-date-title" class="font-bold">2026-01-01</span>
-                <button onclick="closeModal()" class="text-xl px-2">&times;</button>
+            <div class="p-3 bg-[var(--color-active)] text-white flex justify-between items-center flex-none">
+                <span id="modal-date-title" class="font-bold text-sm">2026-01-01</span>
+                <button onclick="closeModal()" class="text-2xl px-2">&times;</button>
             </div>
             <div id="drink-forms" class="p-3 overflow-y-auto space-y-4"></div>
             <div class="p-3 border-t bg-gray-50 flex gap-2 flex-none">
-                <button onclick="addDrinkEntry()" id="add-btn" class="flex-1 py-2 btn-add rounded font-bold text-xs">＋下一杯</button>
-                <button onclick="saveRecords()" class="flex-1 py-2 btn-save rounded font-bold text-xs">儲存並關閉</button>
+                <button onclick="addDrinkEntry()" id="add-btn" class="flex-1 py-2 btn-add rounded-lg font-bold text-xs">＋下一杯</button>
+                <button onclick="saveRecords()" class="flex-1 py-2 btn-save rounded-lg font-bold text-xs">儲存變更</button>
             </div>
         </div>
     </div>
@@ -254,6 +264,8 @@
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
             
+            document.getElementById(`view-${tab}`).scrollTop = 0;
+
             if (tab === 'list') renderList();
             if (tab === 'analysis') renderAnalysis();
             if (tab === 'calendar') renderCalendar();
@@ -330,10 +342,10 @@
 
             currentDrinks.forEach((d, idx) => {
                 const div = document.createElement('div');
-                div.className = "p-3 bg-[#f9f9f9] border rounded-lg relative";
+                div.className = "p-3 bg-[#f9f9f9] border rounded-lg relative shadow-sm";
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-xs text-[var(--color-purple)]">第 ${idx + 1} 杯</span>
+                        <span class="font-bold text-xs text-[var(--color-active)]"># ${idx + 1}</span>
                         ${idx > 0 ? `<button onclick="removeDrink(${idx})" class="text-red-400 text-xs">移除</button>` : ''}
                     </div>
                     <div class="grid grid-cols-2 gap-2 mb-2">
@@ -354,7 +366,7 @@
                             ${[1, 2, 3, 4, 5].map(s => `<span class="rating-star ${s <= d.rating ? 'active' : ''}" onclick="setRating(${idx}, ${s})">★</span>`).join('')}
                         </div>
                     </div>
-                    <textarea class="text-xs h-12" placeholder="備註..." oninput="updateCurrent(${idx}, 'note', this.value)">${d.note}</textarea>
+                    <textarea class="text-xs h-12" placeholder="備註 (加料、心情等)..." oninput="updateCurrent(${idx}, 'note', this.value)">${d.note}</textarea>
                 `;
                 container.appendChild(div);
             });
@@ -373,6 +385,7 @@
             localStorage.setItem('drink_data_2026', JSON.stringify(records));
             renderCalendar();
             closeModal();
+            showToast("紀錄已更新");
         }
 
         function updateStats() {
@@ -405,23 +418,32 @@
             });
             flattened.sort((a,b) => b.date.localeCompare(a.date));
 
-            flattened.filter(i => i.date.includes(q) || i.store.toLowerCase().includes(q) || i.item.toLowerCase().includes(q))
-                .forEach(i => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = "bg-white p-2 rounded border-l-4 border-[var(--color-purple)] shadow-sm text-[11px]";
-                    itemDiv.innerHTML = `
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="font-bold text-gray-400 font-mono">${i.date}</span>
-                            <span class="font-bold text-indigo-600">$${i.price || 0}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="font-bold text-[12px]">${i.store} · ${i.item}</span>
-                            <span>${i.ice}/${i.sugar} | ${'★'.repeat(i.rating)}</span>
-                        </div>
-                        <div class="text-gray-400 mt-1 italic border-t pt-1">備註: ${i.note || '無'}</div>
-                    `;
-                    container.appendChild(itemDiv);
-                });
+            const filtered = flattened.filter(i => i.date.includes(q) || i.store.toLowerCase().includes(q) || i.item.toLowerCase().includes(q));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-400 py-10">找不到相關紀錄</div>`;
+                return;
+            }
+
+            filtered.forEach(i => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = "bg-white p-3 rounded-lg border-l-4 border-[var(--color-active)] shadow-sm text-[11px]";
+                itemDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-gray-500 font-mono text-[12px]">${i.date}</span>
+                        <span class="font-bold text-[var(--color-active)] text-[13px] font-black">$${i.price || 0}</span>
+                    </div>
+                    <div class="flex justify-between items-baseline">
+                        <span class="font-bold text-[13px] text-gray-700">${i.store} · ${i.item}</span>
+                        <span class="text-gray-400">${i.ice}/${i.sugar}</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-yellow-500 text-[14px]">${'★'.repeat(i.rating)}${'☆'.repeat(5-i.rating)}</span>
+                        <span class="text-gray-400 italic">${i.note || '無備註'}</span>
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            });
         }
 
         function exportList() {
@@ -436,7 +458,7 @@
                 return;
             }
 
-            let text = "🥤 2026手搖紀錄清單 🥤\n\n";
+            let text = "🥤 2026手搖紀錄備份 🥤\n\n";
             flattened.forEach((i, idx) => {
                 text += `[${idx + 1}] ${i.date}\n`;
                 text += `店名：${i.store}\n`;
@@ -454,7 +476,7 @@
             textArea.select();
             try {
                 document.execCommand('copy');
-                showToast("已成功複製到剪貼簿");
+                showToast("已成功複製文字備份");
             } catch (err) {
                 showToast("複製失敗");
             }
@@ -498,8 +520,11 @@
 
                 if (date && (store || item)) {
                     if (!records[date]) records[date] = [];
-                    records[date].push({ store, item, ice, sugar, price, rating, note });
-                    successCount++;
+                    const exists = records[date].some(r => r.store === store && r.item === item && r.price == price);
+                    if (!exists) {
+                        records[date].push({ store, item, ice, sugar, price, rating, note });
+                        successCount++;
+                    }
                 }
             });
 
@@ -508,9 +533,9 @@
                 document.getElementById('import-input').value = '';
                 renderList();
                 updateStats();
-                showToast(`成功匯入 ${successCount} 筆紀錄`);
+                showToast(`成功匯入 ${successCount} 筆新紀錄`);
             } else {
-                showToast("解析失敗");
+                showToast("未發現新紀錄或格式不符");
             }
         }
 
@@ -524,39 +549,62 @@
         let chartInstance = null;
         function renderAnalysis() {
             const stores = {};
-            const itemCombinations = {}; 
+            const statsMap = {}; 
 
             Object.values(records).flat().forEach(d => {
                 if (d.store) stores[d.store] = (stores[d.store] || 0) + 1;
                 
                 if (d.store && d.item) {
                     const combo = `${d.store} - ${d.item}`;
-                    itemCombinations[combo] = (itemCombinations[combo] || 0) + 1;
+                    if (!statsMap[combo]) statsMap[combo] = { count: 0, totalPrice: 0 };
+                    statsMap[combo].count += 1;
+                    statsMap[combo].totalPrice += (parseFloat(d.price) || 0);
                 }
             });
 
             const ctx = document.getElementById('storeChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
                     labels: Object.keys(stores),
                     datasets: [{
                         data: Object.values(stores),
-                        backgroundColor: ['#ECD4D4', '#CCDBE2', '#C9CBE0', '#A5B4FC', '#86efac', '#fde68a']
+                        backgroundColor: ['#ECD4D4', '#CCDBE2', '#C9CBE0', '#A5B4FC', '#86efac', '#fde68a', '#94a3b8', '#f87171']
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { boxWidth: 10, font: { size: 10 } } 
+                        } 
+                    } 
+                }
             });
 
-            const topTen = Object.entries(itemCombinations).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            const sortedRank = Object.entries(statsMap)
+                .sort((a,b) => b[1].count - a[1].count)
+                .slice(0, 10);
+
             const rankDiv = document.getElementById('item-rank');
-            rankDiv.innerHTML = topTen.map(([combo, count], idx) => `
-                <div class="flex justify-between items-center text-[11px] p-2 bg-[var(--color-gray)] rounded">
-                    <span>${idx + 1}. <b class="text-indigo-700">${combo}</b></span>
-                    <span class="font-bold">${count} 杯</span>
+            rankDiv.innerHTML = sortedRank.map(([combo, data], idx) => {
+                const avgPrice = Math.round(data.totalPrice / data.count);
+                return `
+                <div class="flex justify-between items-center p-3 bg-[var(--color-gray)] rounded-lg shadow-sm">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-[var(--color-active)] font-bold">TOP ${idx + 1}</span>
+                        <span class="text-[13px] font-bold text-gray-700">${combo}</span>
+                        <span class="text-[10px] text-gray-400">平均價格：$${avgPrice}</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-black text-gray-600">${data.count} <span class="text-[10px] font-normal">杯</span></div>
+                    </div>
                 </div>
-            `).join('') || '<div class="text-center text-gray-400 py-4">尚無數據</div>';
+            `;
+            }).join('') || '<div class="text-center text-gray-400 py-10">尚無飲用數據</div>';
         }
     </script>
 </body>

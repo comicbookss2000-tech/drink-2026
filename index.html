@@ -127,6 +127,17 @@
             z-index: 1000;
             display: none;
         }
+
+        /* 清單項目的壓縮樣式 */
+        .list-item {
+            background-color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--color-active);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -195,19 +206,16 @@
             <div class="sticky top-0 bg-[var(--color-gray)] pb-2 z-10">
                 <div class="flex gap-2 mb-2">
                     <input type="text" id="search-input" placeholder="搜尋店名、品項..." oninput="renderList()">
-                    <button onclick="exportList()" class="whitespace-nowrap bg-[var(--color-active)] text-white px-3 rounded text-xs font-bold">匯出複製</button>
+                    <button onclick="exportList()" class="whitespace-nowrap bg-[var(--color-active)] text-white px-3 rounded text-xs font-bold">匯出</button>
                 </div>
 
-                <div class="bg-white p-3 rounded-lg shadow-sm border border-dashed border-[var(--color-active)]">
-                    <h4 class="text-[12px] font-bold mb-2 text-[var(--color-active)] flex items-center gap-1">
-                        <span>📥 快速匯入/還原紀錄</span>
-                    </h4>
-                    <textarea id="import-input" class="text-[10px] h-16 mb-2 w-full" placeholder="在此貼上之前備份的文字紀錄..."></textarea>
-                    <button onclick="importFromText()" class="w-full py-1.5 bg-[var(--color-blue)] text-gray-700 rounded text-xs font-bold shadow-sm">解析並存入資料區</button>
+                <div class="bg-white p-2 rounded-lg shadow-sm border border-dashed border-[var(--color-active)]">
+                    <textarea id="import-input" class="text-[10px] h-10 mb-1 w-full" placeholder="在此貼上備份文字還原..."></textarea>
+                    <button onclick="importFromText()" class="w-full py-1 bg-[var(--color-blue)] text-gray-700 rounded text-[10px] font-bold">匯入資料</button>
                 </div>
             </div>
 
-            <div id="list-container" class="space-y-2 mt-2"></div>
+            <div id="list-container" class="mt-2"></div>
         </section>
 
         <!-- View: Analysis -->
@@ -407,6 +415,7 @@
             document.getElementById('m-cost').innerText = `$${mCost}`;
         }
 
+        /** 渲染清單：修正為兩行格式 **/
         function renderList() {
             const container = document.getElementById('list-container');
             const q = document.getElementById('search-input').value.toLowerCase();
@@ -427,19 +436,28 @@
 
             filtered.forEach(i => {
                 const itemDiv = document.createElement('div');
-                itemDiv.className = "bg-white p-3 rounded-lg border-l-4 border-[var(--color-active)] shadow-sm text-[11px]";
+                itemDiv.className = "list-item";
+                
+                // 第一行: 日期(簡寫) 店名 品項
+                // 第二行: 價格 冰塊甜度 評分 備註
+                const shortDate = i.date.substring(5); // 取 MM-DD
+                const stars = '★'.repeat(i.rating);
+
                 itemDiv.innerHTML = `
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-gray-500 font-mono text-[12px]">${i.date}</span>
-                        <span class="font-bold text-[var(--color-active)] text-[13px] font-black">$${i.price || 0}</span>
+                    <div class="flex justify-between items-center overflow-hidden whitespace-nowrap">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="font-mono text-[10px] text-gray-400 shrink-0">${shortDate}</span>
+                            <span class="font-bold text-[12px] truncate">${i.store}</span>
+                            <span class="text-[11px] text-gray-600 truncate">${i.item}</span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-baseline">
-                        <span class="font-bold text-[13px] text-gray-700">${i.store} · ${i.item}</span>
-                        <span class="text-gray-400">${i.ice}/${i.sugar}</span>
-                    </div>
-                    <div class="flex justify-between items-center mt-1">
-                        <span class="text-yellow-500 text-[14px]">${'★'.repeat(i.rating)}${'☆'.repeat(5-i.rating)}</span>
-                        <span class="text-gray-400 italic">${i.note || '無備註'}</span>
+                    <div class="flex justify-between items-center text-[10px]">
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-[var(--color-active)]">$${i.price || 0}</span>
+                            <span class="text-gray-400">${i.ice}/${i.sugar}</span>
+                            <span class="text-yellow-500 text-[9px]">${stars}</span>
+                        </div>
+                        <div class="text-gray-400 italic truncate max-w-[40%] text-right">${i.note || ''}</div>
                     </div>
                 `;
                 container.appendChild(itemDiv);
@@ -476,7 +494,7 @@
             textArea.select();
             try {
                 document.execCommand('copy');
-                showToast("已成功複製文字備份");
+                showToast("已複製文字備份");
             } catch (err) {
                 showToast("複製失敗");
             }
@@ -533,9 +551,9 @@
                 document.getElementById('import-input').value = '';
                 renderList();
                 updateStats();
-                showToast(`成功匯入 ${successCount} 筆新紀錄`);
+                showToast(`成功匯入 ${successCount} 筆`);
             } else {
-                showToast("未發現新紀錄或格式不符");
+                showToast("格式不符");
             }
         }
 
